@@ -1,60 +1,69 @@
 package util;
 
+import exception.KoneksiDatabaseException;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Class Koneksi
- * Menyimpan URL, username, dan password database secara terpusat.
- * Dipakai oleh seluruh DAO untuk membuka/menutup koneksi ke MySQL.
- *
- * CATATAN UNTUK PEMULA:
- * - Sesuaikan DB_NAME, USER, dan PASSWORD dengan setting MySQL di komputermu.
- * - Jika kamu TIDAK memakai package (file Java langsung di folder src),
- *   hapus baris "package util;" di paling atas.
+ * Koneksi — Singleton JDBC Connection Manager
+ * Untuk mengganti port: ubah nilai DB_PORT (misal: 3307 jika pakai XAMPP custom).
  */
 public class Koneksi {
 
-    private static final String DB_NAME = "db_pengelolaan_seminar";
-    private static final String URL = "jdbc:mysql://localhost:3306/" + DB_NAME
-            + "?useSSL=false&serverTimezone=Asia/Jakarta";
-    private static final String USER = "root";
-    private static final String PASSWORD = ""; // ganti sesuai password MySQL kamu
+    private static final String DB_HOST     = "localhost";
+    private static final int    DB_PORT     = 3306;           // Ganti ke 3307 jika perlu
+    private static final String DB_NAME     = "db_pengelolaan_seminar";
+    private static final String DB_USER     = "root";
+    private static final String DB_PASSWORD = "";             // Ganti jika ada password
+
+    private static final String URL = String.format(
+        "jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=Asia/Jakarta&allowPublicKeyRetrieval=true",
+        DB_HOST, DB_PORT, DB_NAME
+    );
 
     private static Connection connection;
 
-    private Koneksi() {
-        // Mencegah class ini di-instansiasi langsung (hanya dipakai lewat method static)
-    }
+    private Koneksi() {}
 
     /**
-     * Mengambil koneksi aktif ke database.
-     * Jika belum ada koneksi atau koneksi sudah tertutup, akan dibuat ulang.
+     * Mengambil koneksi aktif. Membuat koneksi baru jika belum ada atau sudah tertutup.
+     * @throws KoneksiDatabaseException jika MySQL tidak bisa dihubungi
      */
     public static Connection getConnection() {
         try {
             if (connection == null || connection.isClosed()) {
-                connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("Koneksi database berhasil dibuat.");
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(URL, DB_USER, DB_PASSWORD);
             }
+        } catch (ClassNotFoundException e) {
+            throw new KoneksiDatabaseException("Driver MySQL tidak ditemukan. Pastikan mysql-connector-j sudah ditambahkan ke project.");
         } catch (SQLException e) {
-            System.err.println("Gagal terhubung ke database: " + e.getMessage());
+            throw new KoneksiDatabaseException(e.getMessage());
         }
         return connection;
     }
 
-    /**
-     * Menutup koneksi database. Panggil ini saat aplikasi ditutup.
-     */
+    /** Menutup koneksi database. Panggil saat aplikasi ditutup. */
     public static void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                System.out.println("Koneksi database ditutup.");
             }
         } catch (SQLException e) {
             System.err.println("Gagal menutup koneksi: " + e.getMessage());
         }
+    }
+
+    /**
+     * Ubah port koneksi secara runtime (opsional, jika tim mau switch tanpa recompile).
+     * Panggil SEBELUM getConnection() pertama kali.
+     */
+    public static String buildUrl(String host, int port, String dbName) {
+        return String.format(
+            "jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=Asia/Jakarta&allowPublicKeyRetrieval=true",
+            host, port, dbName
+        );
     }
 }
