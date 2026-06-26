@@ -4,65 +4,49 @@ import exception.*;
 import model.Peserta;
 import model.User;
 import service.AuthService;
-
 import java.sql.SQLException;
 
 /**
- * AuthController — Menerima input dari View, memanggil AuthService,
- * dan mengembalikan hasil atau pesan error ke View.
- *
- * View TIDAK boleh langsung memanggil DAO atau Service lain.
+ * AuthController — bridge View ↔ AuthService.
+ * Semua exception ditangkap di sini; View hanya menerima String "SUKSES|..." atau "ERROR|...".
  */
 public class AuthController {
-
     private final AuthService authService;
-
-    // Session: user yang sedang login (null = belum login)
     private static User userAktif;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
-    // ===================== REGISTRASI =====================
-
-    /**
-     * Proses registrasi peserta baru.
-     * @return pesan sukses atau pesan error
-     */
-    public String registrasi(String nama, String email, String password, String noTelepon) {
+    public String registrasi(String nama, String email, String password,
+                              String noTelepon, Integer idInstitusi) {
         try {
-            Peserta peserta = authService.registrasi(nama, email, password, noTelepon);
-            return "SUKSES|Registrasi berhasil! Selamat datang, " + peserta.getNama()
-                 + ". ID Anda: " + peserta.getIdUser();
+            Peserta p = authService.registrasi(nama, email, password, noTelepon, idInstitusi);
+            return "SUKSES|Registrasi berhasil! Selamat datang, " + p.getNama()
+                 + ". ID akun Anda: " + p.getIdUser();
         } catch (InputKosongException | EmailTidakValidException
-                | PasswordTidakValidException | EmailSudahTerdaftarException e) {
+               | PasswordTidakValidException | EmailSudahTerdaftarException e) {
             return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal menyimpan data. Cek koneksi database.";
+            return "ERROR|Gagal menyimpan data ke database. Detail: " + e.getMessage();
+        } catch (Exception e) {
+            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
-    // ===================== LOGIN =====================
-
-    /**
-     * Proses login.
-     * @return pesan sukses atau pesan error
-     */
     public String login(String email, String password) {
         try {
-            User user = authService.login(email, password);
-            userAktif = user;
-            return "SUKSES|Login berhasil! Selamat datang, " + user.getNama()
-                 + " [" + user.getRole() + "]";
+            userAktif = authService.login(email, password);
+            return "SUKSES|Login berhasil! Selamat datang, " + userAktif.getNama()
+                 + " [" + userAktif.getRole() + "]";
         } catch (InputKosongException | LoginGagalException e) {
             return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal menghubungi database.";
+            return "ERROR|Gagal menghubungi database. Pastikan MySQL aktif. Detail: " + e.getMessage();
+        } catch (Exception e) {
+            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
         }
     }
-
-    // ===================== LOGOUT =====================
 
     public String logout() {
         if (userAktif == null) return "INFO|Tidak ada sesi aktif.";
@@ -71,41 +55,46 @@ public class AuthController {
         return "SUKSES|Sampai jumpa, " + nama + "!";
     }
 
-    // ===================== UPDATE PROFIL =====================
-
-    public String updateProfil(String nama, String noTelepon) {
+    public String updateProfil(String nama, String noTelepon, Integer idInstitusi) {
         if (userAktif == null) return "ERROR|Anda harus login terlebih dahulu.";
         try {
-            boolean berhasil = authService.updateProfil(userAktif.getIdUser(), nama, noTelepon);
-            if (berhasil) {
+            boolean ok = authService.updateProfil(userAktif.getIdUser(), nama, noTelepon, idInstitusi);
+            if (ok) {
                 userAktif.setNama(nama);
                 userAktif.setNoTelepon(noTelepon);
+                userAktif.setIdInstitusi(idInstitusi);
                 return "SUKSES|Profil berhasil diperbarui.";
             }
-            return "ERROR|Tidak ada data yang diubah.";
+            return "ERROR|Tidak ada perubahan yang tersimpan.";
         } catch (InputKosongException e) {
             return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal memperbarui profil.";
+            return "ERROR|Gagal memperbarui profil. Detail: " + e.getMessage();
+        } catch (Exception e) {
+            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
     public String gantiPassword(String passwordLama, String passwordBaru) {
         if (userAktif == null) return "ERROR|Anda harus login terlebih dahulu.";
         try {
-            boolean berhasil = authService.gantiPassword(userAktif, passwordLama, passwordBaru);
-            if (berhasil) return "SUKSES|Password berhasil diubah.";
-            return "ERROR|Gagal mengubah password.";
-        } catch (PasswordTidakValidException | LoginGagalException | InputKosongException e) {
+            boolean ok = authService.gantiPassword(userAktif, passwordLama, passwordBaru);
+            return ok ? "SUKSES|Password berhasil diubah."
+                      : "ERROR|Gagal mengubah password.";
+        } catch (PasswordTidakValidException e) {
+            return "ERROR|Password baru tidak valid: " + e.getMessage();
+        } catch (LoginGagalException e) {
+            return "ERROR|Password lama salah. Silakan coba lagi.";
+        } catch (InputKosongException e) {
             return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal memperbarui password.";
+            return "ERROR|Gagal memperbarui password. Detail: " + e.getMessage();
+        } catch (Exception e) {
+            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
-    // ===================== SESSION =====================
-
-    public static User getUserAktif()   { return userAktif; }
-    public static boolean sudahLogin()  { return userAktif != null; }
-    public static void setUserAktif(User u) { userAktif = u; }
+    public static User    getUserAktif()           { return userAktif; }
+    public static boolean sudahLogin()             { return userAktif != null; }
+    public static void    setUserAktif(User u)     { userAktif = u; }
 }

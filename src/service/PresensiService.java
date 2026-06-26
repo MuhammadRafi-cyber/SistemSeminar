@@ -1,66 +1,98 @@
 package service;
 
+import dao.AuditLogDAO;
 import dao.PendaftaranDAO;
 import dao.PresensiDAO;
 import enums.Role;
 import enums.StatusHadir;
 import enums.StatusPendaftaran;
 import exception.*;
+import model.DetailPendaftaran;
 import model.Pendaftaran;
 import model.User;
-
+import util.Validator;
 import java.sql.SQLException;
 
 /**
- * PresensiService — business logic presensi.
- * Query D1 (insert/update) dan D2 (cek status).
- * FK presensi → id_pendaftaran (sesuai DB tim).
+ * PresensiService — business logic pencatatan kehadiran.
+ * DB v4: presensi FK ke id_detail, kolom status (bukan status_hadir), waktu (bukan waktu_presensi).
  */
 public class PresensiService {
-
     private final PresensiDAO    presensiDAO;
     private final PendaftaranDAO pendaftaranDAO;
+    private final AuditLogDAO    auditLogDAO;
 
-    public PresensiService(PresensiDAO presensiDAO, PendaftaranDAO pendaftaranDAO) {
-        this.presensiDAO    = presensiDAO;
-        this.pendaftaranDAO = pendaftaranDAO;
+    public PresensiService(PresensiDAO pr, PendaftaranDAO pd, AuditLogDAO al) {
+        this.presensiDAO    = pr;
+        this.pendaftaranDAO = pd;
+        this.auditLogDAO    = al;
     }
 
     /**
-     * D1: Catat presensi HADIR berdasarkan id_pendaftaran.
+     * Catat presensi HADIR berdasarkan kode_booking tiket.
+     * Alur:
+     *   1. Validasi hak akses (harus Panitia/Admin)
+     *   2. Validasi kode_booking tidak kosong
+     *   3. Cari tiket via kode_booking
+     *   4. Cek pendaftaran harus berstatus CONFIRMED
+     *   5. Cek tidak duplikat (belum HADIR sebelumnya)
+     *   6. Simpan atau update presensi
+     *
+     * @param panitia      User yang mencatat (harus PANITIA/ADMIN)
+     * @param kodeBooking  Kode unik pada tiket peserta
+     * @return StatusHadir.HADIR jika berhasil
      */
-    public StatusHadir scanPresensi(User panitia, int idPendaftaran)
-            throws AksesDitolakException, DataTidakDitemukanException,
-                   PresensiDuplikatException, SQLException {
+    public StatusHadir scanPresensi(User panitia, String kodeBooking)
+            throws AksesDitolakException, InputKosongException,
+                   DataTidakDitemukanException, PresensiDuplikatException, SQLException {
 
-        if (panitia.getRole() == Role.PESERTA) {
+        // 1. Hak akses
+        if (panitia.getRole() == Role.PESERTA)
             throw new AksesDitolakException("Hanya Panitia/Admin yang dapat mencatat presensi.");
-        }
 
-        // Validasi pendaftaran ada dan CONFIRMED
-        Pendaftaran p = pendaftaranDAO.getById(idPendaftaran);
-        if (p == null || p.getStatusPendaftaran() != StatusPendaftaran.CONFIRMED) {
-            throw new DataTidakDitemukanException("Pendaftaran", idPendaftaran);
-        }
+        // 2. Validasi input
+        Validator.cekTidakKosong(kodeBooking, "Kode Booking");
+        String kode = kodeBooking.trim().toUpperCase();
 
-        // D2: cek apakah sudah HADIR
-        StatusHadir statusLama = presensiDAO.getStatusByPendaftaran(idPendaftaran);
-        if (statusLama == StatusHadir.HADIR) {
-            throw new PresensiDuplikatException(idPendaftaran);
-        }
+        // 3. Cari tiket
+        DetailPendaftaran tiket = pendaftaranDAO.getDetailByKodeBooking(kode);
+        // DAO sudah throw DataTidakDitemukanException jika tidak ada
 
-        // D1: simpan atau update
-        presensiDAO.simpanAtauUpdate(idPendaftaran, StatusHadir.HADIR);
+        // 4. Cek pendaftaran harus CONFIRMED
+        Pendaftaran pendaftaran = pendaftaranDAO.getById(tiket.getIdPendaftaran());
+        if (pendaftaran.getStatus() != StatusPendaftaran.CONFIRMED)
+            throw new AksesDitolakException(
+                "Tiket '" + kode + "' tidak dapat dipresensi. "
+                + "Status pendaftaran: " + pendaftaran.getStatus()
+                + ". Harus CONFIRMED.");
+
+        // 5. Cek duplikat presensi
+        StatusHadir statusLama = presensiDAO.getStatusByDetail(tiket.getIdDetail());
+        if (statusLama == StatusHadir.HADIR)
+            throw new PresensiDuplikatException(kode);
+
+        // 6. Simpan presensi
+        presensiDAO.simpanAtauUpdate(tiket.getIdDetail(), StatusHadir.HADIR);
+        auditLogDAO.log(panitia.getIdUser(), "UBAH_PRESENSI", "presensi");
+
         return StatusHadir.HADIR;
     }
 
     /**
-     * D2: cek status kehadiran.
+     * Cek status kehadiran tiket tertentu.
+     * @return StatusHadir atau null jika belum pernah presensi
      */
-    public StatusHadir cekStatus(int idPendaftaran) throws SQLException {
-        return presensiDAO.getStatusByPendaftaran(idPendaftaran);
+    public StatusHadir cekStatus(String kodeBooking)
+            throws InputKosongException, DataTidakDitemukanException, SQLException {
+
+        Validator.cekTidakKosong(kodeBooking, "Kode Booking");
+        String kode = kodeBooking.trim().toUpperCase();
+
+        DetailPendaftaran tiket = pendaftaranDAO.getDetailByKodeBooking(kode);
+        return presensiDAO.getStatusByDetail(tiket.getIdDetail());
     }
 
+    /** Hitung jumlah peserta HADIR di satu seminar (untuk laporan F2). */
     public int hitungHadir(int idSeminar) throws SQLException {
         return presensiDAO.hitungHadirBySeminar(idSeminar);
     }

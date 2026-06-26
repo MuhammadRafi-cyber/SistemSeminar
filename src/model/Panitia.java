@@ -1,66 +1,46 @@
 package model;
 
 import enums.Role;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Panitia — turunan User.
- * Konsep PBO: Inheritance, Polymorphism (override generateLaporan), Collection (ArrayList).
- */
+/** Panitia — extends User (Inheritance + Polymorphism). */
 public class Panitia extends User {
+    private List<Seminar> daftarSeminar = new ArrayList<>();
 
-    // === Collection seminar yang dikelola panitia ini ===
-    private List<Seminar> daftarSeminar;
-
-    // === Constructor lengkap (dari DB) ===
-    public Panitia(int idUser, String nama, String email, String passwordHash,
-                   String noTelepon, String tanggalDaftar) {
-        super(idUser, nama, email, passwordHash, Role.PANITIA, noTelepon, tanggalDaftar);
-        this.daftarSeminar = new ArrayList<>();
+    public Panitia(int idUser, Integer idInstitusi, String nama, String email,
+                   String passwordHash, String noTelepon, String tanggalDaftar) {
+        super(idUser, idInstitusi, nama, email, passwordHash, Role.PANITIA, noTelepon, tanggalDaftar);
     }
 
-    // Constructor untuk insert baru
-    public Panitia(String nama, String email, String passwordHash, String noTelepon) {
-        super(nama, email, passwordHash, Role.PANITIA, noTelepon);
-        this.daftarSeminar = new ArrayList<>();
+    public Panitia(Integer idInstitusi, String nama, String email,
+                   String passwordHash, String noTelepon) {
+        super(idInstitusi, nama, email, passwordHash, Role.PANITIA, noTelepon);
     }
 
-    // === Polymorphism: override generateLaporan ===
     @Override
     public String generateLaporan() {
         StringBuilder sb = new StringBuilder();
         sb.append("=== LAPORAN SEMINAR PANITIA ===\n");
         sb.append("Panitia : ").append(getNama()).append("\n");
-        sb.append("Email   : ").append(getEmail()).append("\n");
-        sb.append("-------------------------------\n");
-
+        sb.append("─".repeat(60)).append("\n");
         if (daftarSeminar.isEmpty()) {
-            sb.append("Belum ada seminar yang dikelola.\n");
+            sb.append("  Belum ada seminar yang dikelola.\n");
         } else {
-            int no = 1;
             for (Seminar s : daftarSeminar) {
-                sb.append(no++).append(". ")
+                sb.append("  [").append(s.getIdSeminar()).append("] ")
                   .append(s.getJudul())
-                  .append(" | Kuota: ").append(s.getKuotaTerisi()).append("/").append(s.getKuota())
-                  .append(" | Status: ").append(s.getStatus())
+                  .append(" | Terisi: ").append(s.getKuotaTerisi())
+                  .append("/").append(s.getKuota())
+                  .append(" | ").append(s.getStatus())
                   .append("\n");
             }
         }
+        sb.append("─".repeat(60)).append("\n");
         return sb.toString();
     }
 
-    // === Collection helpers ===
-    public void tambahSeminar(Seminar s) {
-        daftarSeminar.add(s);
-    }
-
-    public List<Seminar> getDaftarSeminar() {
-        return daftarSeminar;
-    }
-
-    public void setDaftarSeminar(List<Seminar> list) {
-        this.daftarSeminar = list;
-    }
+    public void tambahSeminar(Seminar s)            { daftarSeminar.add(s); }
+    public List<Seminar> getDaftarSeminar()         { return daftarSeminar; }
+    public void setDaftarSeminar(List<Seminar> l)   { daftarSeminar = l; }
 }

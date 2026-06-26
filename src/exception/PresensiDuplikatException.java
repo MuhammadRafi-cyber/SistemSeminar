@@ -1,7 +1,6 @@
 package exception;
-
 public class PresensiDuplikatException extends Exception {
-    public PresensiDuplikatException(int idPendaftaran) {
-        super("Pendaftaran #" + idPendaftaran + " sudah melakukan presensi sebelumnya.");
+    public PresensiDuplikatException(String kodeBooking) {
+        super("Tiket '" + kodeBooking + "' sudah melakukan presensi sebelumnya.");
     }
 }

@@ -6,55 +6,40 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * PasswordHelper — SHA-256 + salt hashing untuk konteks akademik.
- * Format simpan di DB: salt:hash (dipisah titik dua)
+ * PasswordHelper — SHA-256 + salt hashing.
+ * Format simpan di DB (kolom password_hash): "salt:hash"
  */
 public class PasswordHelper {
 
-    /**
-     * Hash password dengan salt acak.
-     * @return String format "salt:hash" untuk disimpan ke DB
-     */
     public static String hash(String plainPassword) {
+        if (plainPassword == null || plainPassword.isEmpty())
+            throw new IllegalArgumentException("Password tidak boleh kosong saat di-hash.");
         try {
-            SecureRandom random = new SecureRandom();
             byte[] saltBytes = new byte[16];
-            random.nextBytes(saltBytes);
-            String salt = Base64.getEncoder().encodeToString(saltBytes);
-
+            new SecureRandom().nextBytes(saltBytes);
+            String salt   = Base64.getEncoder().encodeToString(saltBytes);
             String hashed = sha256(salt + plainPassword);
             return salt + ":" + hashed;
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 tidak tersedia.", e);
+            throw new RuntimeException("SHA-256 tidak tersedia di JVM ini.", e);
         }
     }
 
-    /**
-     * Verifikasi password plain terhadap nilai hash yang tersimpan di DB.
-     * @param plainPassword   Password yang diinput user
-     * @param storedValue     Nilai dari DB format "salt:hash"
-     */
     public static boolean verify(String plainPassword, String storedValue) {
+        if (plainPassword == null || storedValue == null) return false;
         try {
             String[] parts = storedValue.split(":", 2);
             if (parts.length != 2) return false;
-
-            String salt   = parts[0];
-            String stored = parts[1];
-            String hashed = sha256(salt + plainPassword);
-            return hashed.equals(stored);
+            return sha256(parts[0] + plainPassword).equals(parts[1]);
         } catch (NoSuchAlgorithmException e) {
             return false;
         }
     }
 
     private static String sha256(String input) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] bytes = digest.digest(input.getBytes());
+        byte[] bytes = MessageDigest.getInstance("SHA-256").digest(input.getBytes());
         StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02x", b));
-        }
+        for (byte b : bytes) sb.append(String.format("%02x", b));
         return sb.toString();
     }
 }

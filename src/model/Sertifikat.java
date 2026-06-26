@@ -1,44 +1,50 @@
 package model;
 
 /**
- * Sertifikat — sesuai DB tim.
- * Tabel: sertifikat(id_sertifikat, id_pendaftaran, kode_sertifikat, tanggal_terbit)
- * FK ke pendaftaran (bukan ke detail_pendaftaran). Tidak ada kolom versi.
+ * Sertifikat — FK ke id_detail, sesuai DB v4.
+ * Kolom DB: id_sertifikat, id_detail, nomor (UNIQUE), versi, file_path, tanggal_terbit
  */
 public class Sertifikat {
-
     private int    idSertifikat;
-    private int    idPendaftaran;    // FK ke pendaftaran.id_pendaftaran
-    private String kodeSertifikat;  // nama kolom di DB: kode_sertifikat
+    private int    idDetail;
+    private String nomor;          // kolom DB: nomor (bukan kode_sertifikat)
+    private int    versi;          // baru di v4
+    private String filePath;       // baru di v4
     private String tanggalTerbit;
 
     // Constructor dari DB
-    public Sertifikat(int idSertifikat, int idPendaftaran,
-                      String kodeSertifikat, String tanggalTerbit) {
-        this.idSertifikat  = idSertifikat;
-        this.idPendaftaran = idPendaftaran;
-        this.kodeSertifikat = kodeSertifikat;
-        this.tanggalTerbit  = tanggalTerbit;
+    public Sertifikat(int idSertifikat, int idDetail, String nomor,
+                      int versi, String filePath, String tanggalTerbit) {
+        this.idSertifikat = idSertifikat;
+        this.idDetail     = idDetail;
+        this.nomor        = nomor;
+        this.versi        = versi;
+        this.filePath     = filePath;
+        this.tanggalTerbit = tanggalTerbit;
     }
 
-    // Constructor untuk INSERT baru (E1: INSERT INTO sertifikat (id_pendaftaran, kode_sertifikat))
-    public Sertifikat(int idPendaftaran, String kodeSertifikat) {
-        this.idPendaftaran  = idPendaftaran;
-        this.kodeSertifikat = kodeSertifikat;
+    // Constructor untuk INSERT baru
+    public Sertifikat(int idDetail, String nomor, String filePath) {
+        this.idDetail  = idDetail;
+        this.nomor     = nomor;
+        this.versi     = 1;
+        this.filePath  = filePath;
     }
 
-    // Getters
-    public int    getIdSertifikat()   { return idSertifikat; }
-    public int    getIdPendaftaran()  { return idPendaftaran; }
-    public String getKodeSertifikat() { return kodeSertifikat; }
-    public String getTanggalTerbit()  { return tanggalTerbit; }
+    public int    getIdSertifikat()  { return idSertifikat; }
+    public int    getIdDetail()      { return idDetail; }
+    public String getNomor()         { return nomor; }
+    public int    getVersi()         { return versi; }
+    public String getFilePath()      { return filePath; }
+    public String getTanggalTerbit() { return tanggalTerbit; }
 
-    // Setters
-    public void setIdSertifikat(int id)        { this.idSertifikat = id; }
-    public void setKodeSertifikat(String kode) { this.kodeSertifikat = kode; }
+    public void setIdSertifikat(int id)  { this.idSertifikat = id; }
+    public void setNomor(String n)       { this.nomor = n; }
+    public void setVersi(int v)          { this.versi = v; }
+    public void setFilePath(String fp)   { this.filePath = fp; }
 
     @Override
     public String toString() {
-        return "Sertifikat[" + kodeSertifikat + "] Pendaftaran#" + idPendaftaran;
+        return "Sertifikat[" + nomor + "] v" + versi + " | Detail#" + idDetail;
     }
 }

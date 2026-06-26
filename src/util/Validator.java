@@ -1,54 +1,57 @@
 package util;
 
 import exception.*;
-
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Validator — kumpulan method validasi input yang dipakai di seluruh Service.
  */
 public class Validator {
 
-    /** Memastikan string tidak null dan tidak kosong */
     public static void cekTidakKosong(String nilai, String namaField) throws InputKosongException {
-        if (nilai == null || nilai.trim().isEmpty()) {
+        if (nilai == null || nilai.trim().isEmpty())
             throw new InputKosongException(namaField);
-        }
     }
 
-    /** Format email: harus ada '@' dan '.' setelah '@' */
     public static void cekEmail(String email) throws EmailTidakValidException, InputKosongException {
         cekTidakKosong(email, "Email");
-        if (!email.matches("^[\\w._%+\\-]+@[\\w.\\-]+\\.[a-zA-Z]{2,}$")) {
+        if (!email.matches("^[\\w._%+\\-]+@[\\w.\\-]+\\.[a-zA-Z]{2,}$"))
             throw new EmailTidakValidException();
-        }
     }
 
-    /** Password minimal 8 karakter, ada huruf dan angka */
-    public static void cekPassword(String password) throws PasswordTidakValidException, InputKosongException {
+    public static void cekPassword(String password)
+            throws PasswordTidakValidException, InputKosongException {
         cekTidakKosong(password, "Password");
-        if (password.length() < 8) throw new PasswordTidakValidException();
-        boolean adaHuruf = password.matches(".*[a-zA-Z].*");
-        boolean adaAngka = password.matches(".*[0-9].*");
-        if (!adaHuruf || !adaAngka) throw new PasswordTidakValidException();
+        if (password.length() < 8
+                || !password.matches(".*[a-zA-Z].*")
+                || !password.matches(".*[0-9].*"))
+            throw new PasswordTidakValidException();
     }
 
-    /** Kuota harus positif */
     public static void cekKuota(int kuota) throws KuotaTidakValidException {
         if (kuota <= 0) throw new KuotaTidakValidException();
     }
 
-    /** Tanggal mulai tidak boleh di masa lalu, tanggal selesai harus setelah mulai */
-    public static void cekTanggal(LocalDate tanggalMulai, LocalDate tanggalSelesai)
+    public static void cekHarga(double harga) throws HargaTidakValidException {
+        if (harga < 0) throw new HargaTidakValidException();
+    }
+
+    /**
+     * Validasi tanggal seminar.
+     * tanggal_mulai wajib ada dan tidak boleh di masa lalu.
+     * tanggal_selesai harus sama dengan atau setelah tanggal_mulai.
+     */
+    public static void cekTanggal(LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai)
             throws TanggalTidakValidException {
-        if (tanggalMulai == null || tanggalSelesai == null) {
-            throw new TanggalTidakValidException("Tanggal mulai dan tanggal selesai wajib diisi.");
-        }
-        if (tanggalMulai.isBefore(LocalDate.now())) {
-            throw new TanggalTidakValidException("Tanggal pelaksanaan tidak boleh di masa lalu.");
-        }
-        if (!tanggalSelesai.isAfter(tanggalMulai) && !tanggalSelesai.isEqual(tanggalMulai)) {
-            throw new TanggalTidakValidException("Tanggal selesai harus sama dengan atau setelah tanggal mulai.");
-        }
+        if (tanggalMulai == null)
+            throw new TanggalTidakValidException("Tanggal mulai seminar wajib diisi.");
+        if (tanggalMulai.isBefore(LocalDateTime.now()))
+            throw new TanggalTidakValidException("Tanggal mulai tidak boleh di masa lalu.");
+        if (tanggalSelesai != null && tanggalSelesai.isBefore(tanggalMulai))
+            throw new TanggalTidakValidException("Tanggal selesai harus setelah tanggal mulai.");
+    }
+
+    public static void cekJumlahTiket(int jumlah) throws JumlahTiketTidakValidException {
+        if (jumlah < 1 || jumlah > 4) throw new JumlahTiketTidakValidException();
     }
 }

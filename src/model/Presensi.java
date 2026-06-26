@@ -3,40 +3,33 @@ package model;
 import enums.StatusHadir;
 
 /**
- * Presensi — sesuai DB tim.
- * Tabel: presensi(id_presensi, id_pendaftaran, status_hadir, waktu_presensi)
- * FK ke pendaftaran (bukan ke detail_pendaftaran).
+ * Presensi — FK ke id_detail, sesuai DB v4.
+ * Kolom DB: id_presensi, id_detail, status, waktu
  */
 public class Presensi {
-
     private int         idPresensi;
-    private int         idPendaftaran;   // FK ke pendaftaran.id_pendaftaran
-    private StatusHadir statusHadir;
-    private String      waktuPresensi;
+    private int         idDetail;
+    private StatusHadir status;    // kolom DB: status (bukan status_hadir)
+    private String      waktu;     // kolom DB: waktu (bukan waktu_presensi)
 
-    // Constructor dari DB
-    public Presensi(int idPresensi, int idPendaftaran,
-                    StatusHadir statusHadir, String waktuPresensi) {
-        this.idPresensi    = idPresensi;
-        this.idPendaftaran = idPendaftaran;
-        this.statusHadir   = statusHadir;
-        this.waktuPresensi = waktuPresensi;
+    public Presensi(int idPresensi, int idDetail, StatusHadir status, String waktu) {
+        this.idPresensi = idPresensi;
+        this.idDetail   = idDetail;
+        this.status     = status;
+        this.waktu      = waktu;
     }
 
-    // Constructor untuk INSERT baru
-    public Presensi(int idPendaftaran, StatusHadir statusHadir) {
-        this.idPendaftaran = idPendaftaran;
-        this.statusHadir   = statusHadir;
+    public Presensi(int idDetail, StatusHadir status) {
+        this.idDetail = idDetail;
+        this.status   = status;
     }
 
-    // Getters
-    public int         getIdPresensi()    { return idPresensi; }
-    public int         getIdPendaftaran() { return idPendaftaran; }
-    public StatusHadir getStatusHadir()   { return statusHadir; }
-    public String      getWaktuPresensi() { return waktuPresensi; }
+    public int         getIdPresensi() { return idPresensi; }
+    public int         getIdDetail()   { return idDetail; }
+    public StatusHadir getStatus()     { return status; }
+    public String      getWaktu()      { return waktu; }
 
-    // Setters
-    public void setIdPresensi(int id)         { this.idPresensi = id; }
-    public void setStatusHadir(StatusHadir s)  { this.statusHadir = s; }
-    public void setWaktuPresensi(String w)     { this.waktuPresensi = w; }
+    public void setIdPresensi(int id)      { this.idPresensi = id; }
+    public void setStatus(StatusHadir s)   { this.status = s; }
+    public void setWaktu(String w)         { this.waktu = w; }
 }
