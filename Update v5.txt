@@ -1,0 +1,199 @@
+================================================================
+EVENTIX — APA YANG BARU DI VERSI 5
+Sistem Informasi Pengelolaan Seminar | UAS PBO UPNVJ 2026
+================================================================
+
+RINGKASAN
+---------
+Versi 5 merupakan revisi besar yang menyinkronkan seluruh kode
+backend dengan PRD v1.0 secara penuh, memperbarui alur pembayaran
+menjadi manual (tidak lagi otomatis), dan menambahkan sejumlah
+fitur yang sebelumnya belum diimplementasikan.
+
+Total: 66 file Java + 2 file SQL (naik dari 58 file di v4).
+
+----------------------------------------------------------------
+
+1. ALUR PEMBAYARAN DIUBAH MENJADI MANUAL
+-----------------------------------------
+Sebelumnya (v4): pembayaran diproses otomatis saat daftar,
+langsung CONFIRMED atau GAGAL dalam satu langkah.
+
+Sekarang (v5): pembayaran dilakukan secara eksplisit oleh user
+dalam langkah terpisah.
+
+Alur baru:
+  [1] daftar()         → Pendaftaran: PENDING
+                          Pembayaran:  PENDING
+                          Kuota:       BELUM berkurang
+                          (tiket sudah dibuat, menunggu bayar)
+
+  [2] konfirmasiBayar() → User memilih metode dan menekan
+                          "Bayar Sekarang"
+                          BERHASIL → Pendaftaran: CONFIRMED
+                                     Kuota berkurang
+                                     Tiket aktif
+                          GAGAL    → Pendaftaran tetap PENDING
+                                     Pembayaran: GAGAL
+
+  [3] retryBayar()     → Jika pembayaran GAGAL, user dapat
+                          mencoba ulang (boleh ganti metode)
+
+  Catatan: seminar GRATIS tetap langsung CONFIRMED otomatis.
+
+
+2. ALUR REFUND DENGAN KOLOM STATUS_REFUND TERPISAH
+----------------------------------------------------
+Tabel pembayaran kini memiliki kolom tambahan:
+  status_refund ENUM('TIDAK_ADA','DIMINTA','DIPROSES','SELESAI')
+
+Alur refund saat peserta membatalkan pendaftaran:
+  - Jika pendaftaran CONFIRMED → kuota dikembalikan,
+    status_refund: TIDAK_ADA → DIMINTA → DIPROSES → SELESAI
+  - Jika pendaftaran masih PENDING → tidak ada refund
+    (belum ada uang yang masuk)
+
+Kolom status pembayaran (PENDING/BERHASIL/GAGAL) tidak berubah,
+status refund dicatat terpisah di kolom status_refund.
+
+
+3. FITUR BARU SESUAI PRD
+
+  a) PaymentService (Interface PBO)
+     File baru: PaymentService.java + DummyPaymentService.java
+     PaymentService adalah interface yang mendefinisikan kontrak
+     pembayaran. DummyPaymentService mengimplementasikannya untuk
+     simulasi akademik (tidak ada uang nyata, tidak ada CVV/OTP).
+     Ini memenuhi persyaratan checklist UAS: penggunaan Interface.
+
+  b) Exception Baru
+     - PembayaranGagalException: dilempar saat simulasi gateway
+       menolak transaksi (5% kemungkinan gagal untuk demo).
+     - KodeBookingTidakValidException: dilempar saat kode booking
+       tidak ditemukan, sudah dibatalkan, atau di luar jendela
+       waktu presensi.
+     Total exception: 17 class (naik dari 15 di v4).
+
+  c) Validasi Jendela Waktu Presensi (BR-13)
+     Presensi hanya bisa dicatat dalam rentang waktu:
+       T-60 menit sebelum seminar mulai s.d. seminar selesai.
+     Di luar rentang ini, KodeBookingTidakValidException dilempar
+     dengan pesan waktu buka dan tutup presensi.
+
+  d) Field Baru pada Seminar
+     - id_kategori: FK ke tabel kategori (nullable)
+     - pembicara  : nama pembicara/narasumber
+     - mode       : ENUM ONLINE / OFFLINE
+     - banner_path: path file banner seminar
+     Tabel kategori juga dikembalikan di v5.
+
+  e) Kolom dicatat_oleh di Tabel Presensi
+     Setiap pencatatan presensi kini menyimpan id_user Panitia
+     yang melakukan scan. Berguna untuk audit dan akuntabilitas.
+
+  f) Kolom id_entitas dan keterangan di Audit Log
+     Audit log kini lebih informatif:
+     - id_entitas : ID data yang terdampak (misal id_seminar)
+     - keterangan : detail aksi dalam teks bebas
+     Semua aksi penting (daftar, bayar, presensi, sertifikat,
+     refund, dll.) tercatat lengkap di audit_log.
+
+  g) Field username di Tabel User
+     Kolom username ditambahkan dan bersifat UNIQUE, namun tidak
+     digunakan untuk login. Login tetap menggunakan email.
+     Username disimpan untuk kebutuhan tampilan dan identitas.
+
+  h) Field logo_path di Tabel Institusi
+     Institusi kini dapat menyimpan path file logo untuk
+     keperluan tampilan antarmuka (diisi oleh tim Frontend/GUI).
+
+  i) Soft Delete Seminar (BR-07)
+     Jika seminar sudah memiliki peserta aktif:
+       → status diubah ke CANCELLED (soft delete)
+     Jika belum ada peserta:
+       → data dihapus permanen (hard delete)
+     Perilaku ini mencegah data pendaftaran menjadi orphan.
+
+  j) Detail Tiket via Kode Transaksi
+     Menu "Lihat Detail Tiket" kini menggunakan kode transaksi
+     (contoh: TRX-20260710-AB123) sebagai input, bukan ID
+     pendaftaran yang hanya diketahui dari database.
+
+  k) Retry Bayar
+     Peserta dapat mencoba bayar ulang jika pembayaran sebelumnya
+     gagal, termasuk mengganti metode pembayaran.
+
+  l) Ekspor Laporan ke CSV (FR-027)
+     Laporan F1 (peserta) dan F2 (panitia) kini dapat diekspor
+     ke file CSV menggunakan Java standard library (FileWriter +
+     BufferedWriter), tanpa dependency eksternal.
+     Nama file dibuat otomatis jika tidak diisi:
+       laporan_peserta_20260710_093045.csv
+
+
+4. PERUBAHAN NAMA KOLOM (SINKRONISASI PRD)
+
+  Tabel         | Kolom Lama        | Kolom Baru
+  --------------|-------------------|------------------
+  sertifikat    | nomor             | nomor_sertifikat
+  pembayaran    | tanggal_bayar     | waktu_bayar
+  presensi      | -                 | dicatat_oleh (baru)
+  audit_log     | -                 | id_entitas (baru)
+  audit_log     | -                 | keterangan (baru)
+  pembayaran    | -                 | status_refund (baru)
+  user          | -                 | username (baru)
+  institusi     | -                 | logo_path (baru)
+  seminar       | -                 | id_kategori (baru)
+  seminar       | -                 | pembicara (baru)
+  seminar       | -                 | mode (baru)
+  seminar       | -                 | banner_path (baru)
+
+
+5. RINGKASAN FILE BARU / BERUBAH
+
+  BARU:
+    enums/         ModeSeminar.java, StatusRefund.java
+    exception/     PembayaranGagalException.java
+                   KodeBookingTidakValidException.java
+    util/          CsvExporter.java
+    model/         Kategori.java
+    dao/           KategoriDAO.java
+    service/       PaymentService.java (interface)
+                   DummyPaymentService.java
+
+  BERUBAH SIGNIFIKAN:
+    service/PendaftaranService.java  — alur pembayaran manual
+    service/PresensiService.java     — jendela waktu + dicatat_oleh
+    service/SertifikatService.java   — nomor_sertifikat
+    service/LaporanService.java      — ekspor CSV
+    dao/PembayaranDAO.java           — status_refund, waktu_bayar
+    dao/PresensiDAO.java             — dicatat_oleh
+    dao/SertifikatDAO.java           — nomor_sertifikat
+    dao/SeminarDAO.java              — soft/hard delete, field baru
+    dao/AuditLogDAO.java             — id_entitas, keterangan
+    model/Seminar.java               — pembicara, mode, banner_path
+    model/Pembayaran.java            — status_refund
+    model/Presensi.java              — dicatat_oleh
+    model/Sertifikat.java            — nomor_sertifikat
+    model/User.java                  — username
+    model/Institusi.java             — logo_path
+    Main.java                        — menu pembayaran manual,
+                                       kode transaksi, ekspor CSV
+
+
+6. YANG TIDAK BERUBAH
+----------------------
+  - Struktur MVC+DAO tetap sama
+  - Konsep OOP: Abstraction, Encapsulation, Inheritance,
+    Polymorphism, Collection tetap ada
+  - SHA-256 + salt hashing untuk password
+  - Transaksi atomik di PendaftaranDAO (commit/rollback)
+  - Audit log tetap gagal senyap (tidak menghentikan alur utama)
+  - Koneksi database (Koneksi.java) tetap singleton
+
+
+================================================================
+Versi 5.0 | Backend: Putra Arianto (NIM 2410512055)
+DB Engineer & Integration: Muhammad Rafi
+Kelompok 8 — PBO UAS UPNVJ 2026
+================================================================
