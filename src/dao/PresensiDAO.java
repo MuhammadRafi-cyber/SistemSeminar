@@ -7,26 +7,26 @@ import java.sql.*;
 public class PresensiDAO {
 
     /**
-     * D1: INSERT ... ON DUPLICATE KEY UPDATE
-     * UNIQUE(id_detail) di DB menjamin satu tiket = satu presensi.
-     * Kolom: status, waktu (sesuai DB v4)
+     * D1: INSERT ... ON DUPLICATE KEY UPDATE.
+     * Kolom dicatat_oleh = FK user.id_user (Panitia yang scan) — [TAMBAHAN v5].
      */
-    public boolean simpanAtauUpdate(int idDetail, StatusHadir status) throws SQLException {
-        String sql = "INSERT INTO presensi (id_detail, status, waktu) VALUES (?, ?, NOW()) "
-                   + "ON DUPLICATE KEY UPDATE status = ?, waktu = NOW()";
+    public boolean simpanAtauUpdate(int idDetail, StatusHadir status, Integer dicatatOleh)
+            throws SQLException {
+        String sql = "INSERT INTO presensi (id_detail, status, waktu, dicatat_oleh) "
+                   + "VALUES (?, ?, NOW(), ?) "
+                   + "ON DUPLICATE KEY UPDATE status = ?, waktu = NOW(), dicatat_oleh = ?";
         try (Connection c = Koneksi.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1,    idDetail);
+            ps.setInt(1, idDetail);
             ps.setString(2, status.name());
-            ps.setString(3, status.name());
+            if (dicatatOleh != null) ps.setInt(3, dicatatOleh); else ps.setNull(3, Types.INTEGER);
+            ps.setString(4, status.name());
+            if (dicatatOleh != null) ps.setInt(5, dicatatOleh); else ps.setNull(5, Types.INTEGER);
             return ps.executeUpdate() > 0;
         }
     }
 
-    /**
-     * D2: Cek status kehadiran berdasarkan id_detail.
-     * @return StatusHadir atau null jika belum pernah presensi.
-     */
+    /** D2: cek status kehadiran berdasarkan id_detail. */
     public StatusHadir getStatusByDetail(int idDetail) throws SQLException {
         String sql = "SELECT status FROM presensi WHERE id_detail = ?";
         try (Connection c = Koneksi.getConnection();

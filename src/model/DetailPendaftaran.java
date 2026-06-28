@@ -1,16 +1,14 @@
 package model;
 
-/** DetailPendaftaran — tiket per peserta, FK ke pendaftaran. */
 public class DetailPendaftaran {
     private int    idDetail;
     private int    idPendaftaran;
     private String namaPeserta;
     private String emailPeserta;
     private String noTelepon;
-    private String kodeBooking;   // UNIQUE
+    private String kodeBooking;
     private String qrData;
 
-    // Constructor dari DB
     public DetailPendaftaran(int idDetail, int idPendaftaran, String namaPeserta,
                               String emailPeserta, String noTelepon,
                               String kodeBooking, String qrData) {
@@ -22,8 +20,6 @@ public class DetailPendaftaran {
         this.kodeBooking   = kodeBooking;
         this.qrData        = qrData;
     }
-
-    // Constructor untuk INSERT baru (id_detail belum ada)
     public DetailPendaftaran(int idPendaftaran, String namaPeserta, String emailPeserta,
                               String noTelepon, String kodeBooking, String qrData) {
         this.idPendaftaran = idPendaftaran;
@@ -41,13 +37,9 @@ public class DetailPendaftaran {
     public String getNoTelepon()     { return noTelepon; }
     public String getKodeBooking()   { return kodeBooking; }
     public String getQrData()        { return qrData; }
+    public void   setIdDetail(int id){ this.idDetail = id; }
 
-    public void setIdDetail(int id)       { this.idDetail = id; }
-    public void setNamaPeserta(String n)  { this.namaPeserta = n; }
-    public void setEmailPeserta(String e) { this.emailPeserta = e; }
-
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "Tiket[" + kodeBooking + "] " + namaPeserta + " <" + emailPeserta + ">";
     }
 }

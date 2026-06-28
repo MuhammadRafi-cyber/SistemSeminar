@@ -1,50 +1,46 @@
 package model;
 
 /**
- * Sertifikat — FK ke id_detail, sesuai DB v4.
- * Kolom DB: id_sertifikat, id_detail, nomor (UNIQUE), versi, file_path, tanggal_terbit
+ * Sertifikat — FK ke id_detail, sesuai DB v5.
+ * Kolom DB: nomor_sertifikat (PRD tabel 9), versi, file_path.
  */
 public class Sertifikat {
     private int    idSertifikat;
     private int    idDetail;
-    private String nomor;          // kolom DB: nomor (bukan kode_sertifikat)
-    private int    versi;          // baru di v4
-    private String filePath;       // baru di v4
+    private String nomorSertifikat;
     private String tanggalTerbit;
+    private int    versi;
+    private String filePath;
 
-    // Constructor dari DB
-    public Sertifikat(int idSertifikat, int idDetail, String nomor,
-                      int versi, String filePath, String tanggalTerbit) {
-        this.idSertifikat = idSertifikat;
-        this.idDetail     = idDetail;
-        this.nomor        = nomor;
-        this.versi        = versi;
-        this.filePath     = filePath;
-        this.tanggalTerbit = tanggalTerbit;
+    public Sertifikat(int idSertifikat, int idDetail, String nomorSertifikat,
+                      String tanggalTerbit, int versi, String filePath) {
+        this.idSertifikat    = idSertifikat;
+        this.idDetail        = idDetail;
+        this.nomorSertifikat = nomorSertifikat;
+        this.tanggalTerbit   = tanggalTerbit;
+        this.versi           = versi;
+        this.filePath        = filePath;
+    }
+    public Sertifikat(int idDetail, String nomorSertifikat, String filePath) {
+        this.idDetail        = idDetail;
+        this.nomorSertifikat = nomorSertifikat;
+        this.versi           = 1;
+        this.filePath        = filePath;
     }
 
-    // Constructor untuk INSERT baru
-    public Sertifikat(int idDetail, String nomor, String filePath) {
-        this.idDetail  = idDetail;
-        this.nomor     = nomor;
-        this.versi     = 1;
-        this.filePath  = filePath;
-    }
+    public int    getIdSertifikat()    { return idSertifikat; }
+    public int    getIdDetail()        { return idDetail; }
+    public String getNomorSertifikat() { return nomorSertifikat; }
+    public String getTanggalTerbit()   { return tanggalTerbit; }
+    public int    getVersi()           { return versi; }
+    public String getFilePath()        { return filePath; }
 
-    public int    getIdSertifikat()  { return idSertifikat; }
-    public int    getIdDetail()      { return idDetail; }
-    public String getNomor()         { return nomor; }
-    public int    getVersi()         { return versi; }
-    public String getFilePath()      { return filePath; }
-    public String getTanggalTerbit() { return tanggalTerbit; }
+    public void setIdSertifikat(int id)       { this.idSertifikat = id; }
+    public void setNomorSertifikat(String n)  { this.nomorSertifikat = n; }
+    public void setVersi(int v)               { this.versi = v; }
+    public void setFilePath(String fp)        { this.filePath = fp; }
 
-    public void setIdSertifikat(int id)  { this.idSertifikat = id; }
-    public void setNomor(String n)       { this.nomor = n; }
-    public void setVersi(int v)          { this.versi = v; }
-    public void setFilePath(String fp)   { this.filePath = fp; }
-
-    @Override
-    public String toString() {
-        return "Sertifikat[" + nomor + "] v" + versi + " | Detail#" + idDetail;
+    @Override public String toString() {
+        return "Sertifikat[" + nomorSertifikat + "] v" + versi + " | Detail#" + idDetail;
     }
 }

@@ -13,11 +13,6 @@ import util.Validator;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * SertifikatService — business logic penerbitan sertifikat.
- * DB v4: sertifikat FK ke id_detail, kolom nomor (UNIQUE), versi, file_path.
- * Jika sertifikat sudah ada → regenerate (nomor baru, versi naik).
- */
 public class SertifikatService {
     private final SertifikatDAO  sertifikatDAO;
     private final PendaftaranDAO pendaftaranDAO;
@@ -33,64 +28,55 @@ public class SertifikatService {
 
     /**
      * Generate atau regenerate sertifikat berdasarkan kode_booking.
-     * Syarat: peserta harus berstatus HADIR.
-     *
-     * Alur:
-     *   1. Validasi kode_booking tidak kosong
-     *   2. Cari tiket via kode_booking
-     *   3. Cek status presensi harus HADIR
-     *   4. Jika belum ada sertifikat → insert baru (versi 1)
-     *   5. Jika sudah ada → regenerate (nomor baru, versi + 1)
-     *
-     * @return Sertifikat yang baru diterbitkan/diperbarui
+     * Syarat: peserta harus berstatus HADIR (BR-06).
+     * Jika sudah ada → regenerate (nomor baru, versi naik).
      */
     public Sertifikat generate(String kodeBooking)
-            throws InputKosongException, DataTidakDitemukanException,
+            throws InputKosongException, KodeBookingTidakValidException,
                    SertifikatTidakTersediaException, SQLException {
 
-        // 1. Validasi input
         Validator.cekTidakKosong(kodeBooking, "Kode Booking");
         String kode = kodeBooking.trim().toUpperCase();
 
-        // 2. Cari tiket
-        DetailPendaftaran tiket = pendaftaranDAO.getDetailByKodeBooking(kode);
+        // Cari tiket
+        DetailPendaftaran tiket;
+        try {
+            tiket = pendaftaranDAO.getDetailByKodeBooking(kode);
+        } catch (DataTidakDitemukanException e) {
+            throw new KodeBookingTidakValidException(kode, "tiket tidak ditemukan");
+        }
 
-        // 3. Cek presensi — harus HADIR
+        // Cek status HADIR
         StatusHadir statusHadir = presensiDAO.getStatusByDetail(tiket.getIdDetail());
         if (statusHadir != StatusHadir.HADIR)
             throw new SertifikatTidakTersediaException();
 
-        // 4. Cek apakah sertifikat sudah ada
-        Sertifikat existing = sertifikatDAO.getByDetail(tiket.getIdDetail());
-
-        String nomorBaru   = KodeGenerator.generateNomorSertifikat();
+        String nomorBaru    = KodeGenerator.generateNomorSertifikat();
         String filePathBaru = "/sertifikat/" + nomorBaru + ".pdf";
 
+        Sertifikat existing = sertifikatDAO.getByDetail(tiket.getIdDetail());
         if (existing == null) {
-            // Insert baru (versi 1)
+            // Generate baru (versi 1)
             int idSertifikat = sertifikatDAO.insert(tiket.getIdDetail(), nomorBaru, filePathBaru);
-            auditLogDAO.log(null, "TERBITKAN_SERTIFIKAT", "sertifikat");
-            return new Sertifikat(idSertifikat, tiket.getIdDetail(), nomorBaru, 1, filePathBaru, null);
+            auditLogDAO.log(null, "TERBITKAN_SERTIFIKAT", "sertifikat",
+                idSertifikat, "Sertifikat untuk tiket: " + kode);
+            return new Sertifikat(idSertifikat, tiket.getIdDetail(), nomorBaru, null, 1, filePathBaru);
         } else {
-            // 5. Regenerate — nomor baru, versi naik
+            // Regenerate — nomor baru, versi naik
             sertifikatDAO.regenerate(tiket.getIdDetail(), nomorBaru, filePathBaru);
-            existing.setNomor(nomorBaru);
+            existing.setNomorSertifikat(nomorBaru);
             existing.setVersi(existing.getVersi() + 1);
             existing.setFilePath(filePathBaru);
-            auditLogDAO.log(null, "REGENERATE_SERTIFIKAT", "sertifikat");
+            auditLogDAO.log(null, "REGENERATE_SERTIFIKAT", "sertifikat",
+                existing.getIdSertifikat(), "Regenerate v" + existing.getVersi() + " untuk: " + kode);
             return existing;
         }
     }
 
-    /**
-     * Daftar sertifikat milik seorang pemesan.
-     * Return: List Object[]{nomor, tanggalTerbit, versi, filePath, judulSeminar, namaPeserta}
-     */
     public List<Object[]> getSertifikatPemesan(int idUser) throws SQLException {
         return sertifikatDAO.getSertifikatByUser(idUser);
     }
 
-    /** Hitung sertifikat terbit untuk laporan F2. */
     public int hitungSertifikat(int idSeminar) throws SQLException {
         return sertifikatDAO.hitungBySeminar(idSeminar);
     }

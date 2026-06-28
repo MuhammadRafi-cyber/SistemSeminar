@@ -18,37 +18,31 @@ public class SertifikatController {
         try {
             Sertifikat s = sertifikatService.generate(kodeBooking);
             return "SUKSES|Sertifikat berhasil diterbitkan!\n"
-                 + "  Nomor     : " + s.getNomor() + "\n"
-                 + "  Versi     : " + s.getVersi() + "\n"
-                 + "  File Path : " + s.getFilePath();
+                 + "  Nomor Sertifikat : " + s.getNomorSertifikat() + "\n"
+                 + "  Versi            : " + s.getVersi() + "\n"
+                 + "  File Path        : " + s.getFilePath();
         } catch (InputKosongException e) {
-            return "ERROR|Input tidak valid: " + e.getMessage();
-        } catch (DataTidakDitemukanException e) {
-            return "ERROR|Tiket tidak ditemukan: " + e.getMessage();
+            return "ERROR|" + e.getMessage();
+        } catch (KodeBookingTidakValidException e) {
+            return "ERROR|Kode booking tidak valid: " + e.getMessage();
         } catch (SertifikatTidakTersediaException e) {
-            return "ERROR|Sertifikat tidak dapat diterbitkan: " + e.getMessage()
-                 + "\nPastikan peserta sudah tercatat HADIR terlebih dahulu.";
+            return "ERROR|" + e.getMessage()
+                 + "\n  [INFO] Pastikan peserta sudah tercatat HADIR terlebih dahulu.";
         } catch (SQLException e) {
-            return "ERROR|Gagal menerbitkan sertifikat. Detail: " + e.getMessage();
+            return "ERROR|Gagal menerbitkan sertifikat: " + e.getMessage();
         } catch (Exception e) {
-            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
+            return "ERROR|Kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
-    /** E2: [{nomor, tanggalTerbit, versi, filePath, judulSeminar, namaPeserta}] */
+    /** E2: [{nomorSertifikat, tanggalTerbit, versi, filePath, judulSeminar, namaPeserta}] */
     public List<Object[]> getDaftarSertifikat(int idUser) {
         try { return sertifikatService.getSertifikatPemesan(idUser); }
-        catch (SQLException e) {
-            System.err.println("[ERROR] Gagal load sertifikat: " + e.getMessage());
-            return Collections.emptyList();
-        }
+        catch (SQLException e) { System.err.println("[ERROR] " + e.getMessage()); return Collections.emptyList(); }
     }
 
     public int hitungSertifikat(int idSeminar) {
         try { return sertifikatService.hitungSertifikat(idSeminar); }
-        catch (SQLException e) {
-            System.err.println("[ERROR] Gagal hitung sertifikat: " + e.getMessage());
-            return 0;
-        }
+        catch (SQLException e) { System.err.println("[ERROR] " + e.getMessage()); return 0; }
     }
 }

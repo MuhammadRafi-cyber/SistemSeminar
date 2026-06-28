@@ -3,25 +3,28 @@ package model;
 import enums.Role;
 
 /**
- * User — Abstract class (Encapsulation + Abstraction).
- * Kolom DB v4: id_user, id_institusi, nama, email, password_hash, role, no_telepon, tanggal_daftar
+ * User — Abstract class (Abstraction + Encapsulation).
+ * Tambahan v5: kolom username (disimpan, tidak dipakai untuk login — PRD Bagian 18).
  */
 public abstract class User {
     private int     idUser;
-    private Integer idInstitusi;   // nullable FK
+    private Integer idInstitusi;
     private String  nama;
+    private String  username;        // [TAMBAHAN v5] tidak dipakai untuk login
     private String  email;
-    private String  passwordHash;  // kolom DB: password_hash
+    private String  passwordHash;
     private Role    role;
     private String  noTelepon;
     private String  tanggalDaftar;
 
     // Constructor dari DB (full)
-    public User(int idUser, Integer idInstitusi, String nama, String email,
-                String passwordHash, Role role, String noTelepon, String tanggalDaftar) {
+    public User(int idUser, Integer idInstitusi, String nama, String username,
+                String email, String passwordHash, Role role,
+                String noTelepon, String tanggalDaftar) {
         this.idUser        = idUser;
         this.idInstitusi   = idInstitusi;
         this.nama          = nama;
+        this.username      = username;
         this.email         = email;
         this.passwordHash  = passwordHash;
         this.role          = role;
@@ -30,10 +33,11 @@ public abstract class User {
     }
 
     // Constructor untuk INSERT baru
-    public User(Integer idInstitusi, String nama, String email,
+    public User(Integer idInstitusi, String nama, String username, String email,
                 String passwordHash, Role role, String noTelepon) {
         this.idInstitusi  = idInstitusi;
         this.nama         = nama;
+        this.username     = username;
         this.email        = email;
         this.passwordHash = passwordHash;
         this.role         = role;
@@ -47,6 +51,7 @@ public abstract class User {
     public int     getIdUser()        { return idUser; }
     public Integer getIdInstitusi()   { return idInstitusi; }
     public String  getNama()          { return nama; }
+    public String  getUsername()      { return username; }
     public String  getEmail()         { return email; }
     public String  getPasswordHash()  { return passwordHash; }
     public Role    getRole()          { return role; }
@@ -57,6 +62,7 @@ public abstract class User {
     public void setIdUser(int id)             { this.idUser = id; }
     public void setIdInstitusi(Integer id)    { this.idInstitusi = id; }
     public void setNama(String nama)          { this.nama = nama; }
+    public void setUsername(String un)        { this.username = un; }
     public void setEmail(String email)        { this.email = email; }
     public void setPasswordHash(String hash)  { this.passwordHash = hash; }
     public void setRole(Role role)            { this.role = role; }
@@ -64,6 +70,6 @@ public abstract class User {
 
     @Override
     public String toString() {
-        return "[" + role + "] " + nama + " <" + email + ">";
+        return "[" + role + "] " + nama + " (@" + username + ") <" + email + ">";
     }
 }

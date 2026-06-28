@@ -7,7 +7,7 @@ import java.util.Base64;
 
 /**
  * PasswordHelper — SHA-256 + salt hashing.
- * Format simpan di DB (kolom password_hash): "salt:hash"
+ * Format di DB (kolom password_hash): "base64salt:hexhash"
  */
 public class PasswordHelper {
 

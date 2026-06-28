@@ -35,8 +35,7 @@ public class Koneksi {
             return connection;
         } catch (ClassNotFoundException e) {
             throw new KoneksiDatabaseException(
-                "Driver MySQL tidak ditemukan. Tambahkan mysql-connector-j ke project."
-            );
+                "Driver MySQL tidak ditemukan. Tambahkan mysql-connector-j ke project.");
         } catch (SQLException e) {
             throw new KoneksiDatabaseException(e.getMessage());
         }

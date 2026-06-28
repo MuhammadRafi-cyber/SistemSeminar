@@ -2,6 +2,7 @@ package service;
 
 import dao.AuditLogDAO;
 import dao.SeminarDAO;
+import enums.ModeSeminar;
 import enums.Role;
 import enums.StatusSeminar;
 import exception.*;
@@ -23,82 +24,76 @@ public class SeminarService {
 
     public List<Seminar> getAll()               throws SQLException { return seminarDAO.getAll(); }
     public List<Seminar> getDibuka()            throws SQLException { return seminarDAO.getDibuka(); }
-    public List<Seminar> getMilikku(int idPan)  throws SQLException { return seminarDAO.getByPanitia(idPan); }
+    public List<Seminar> getMilikku(int id)     throws SQLException { return seminarDAO.getByPanitia(id); }
     public List<Seminar> getByInstitusi(int id) throws SQLException { return seminarDAO.getByInstitusi(id); }
+    public List<Seminar> getByKategori(int id)  throws SQLException { return seminarDAO.getByKategori(id); }
 
     public Seminar getById(int id) throws DataTidakDitemukanException, SQLException {
-        return seminarDAO.getById(id);  // DAO sudah throw DataTidakDitemukanException
+        return seminarDAO.getById(id);
     }
 
-    /**
-     * Tambah seminar baru.
-     * @throws AksesDitolakException jika role PESERTA mencoba membuat seminar
-     * @throws InputKosongException  jika judul/lokasi kosong
-     * @throws KuotaTidakValidException jika kuota <= 0
-     * @throws HargaTidakValidException jika harga negatif
-     * @throws TanggalTidakValidException jika tanggal tidak valid
-     */
-    public Seminar tambah(User panitia, int idInstitusi, String judul, String deskripsi,
+    public Seminar tambah(User panitia, int idInstitusi, Integer idKategori,
+                           String judul, String deskripsi, String pembicara,
                            LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai,
-                           String lokasi, int kuota, double harga)
+                           ModeSeminar mode, String lokasi, int kuota, double harga)
             throws InputKosongException, KuotaTidakValidException, HargaTidakValidException,
                    TanggalTidakValidException, AksesDitolakException, SQLException {
 
         if (panitia.getRole() == Role.PESERTA)
             throw new AksesDitolakException("Hanya Panitia/Admin yang dapat membuat seminar.");
-
         Validator.cekTidakKosong(judul, "Judul Seminar");
         Validator.cekTidakKosong(lokasi, "Lokasi");
         Validator.cekKuota(kuota);
         Validator.cekHarga(harga);
         Validator.cekTanggal(tanggalMulai, tanggalSelesai);
 
-        Seminar s = new Seminar(idInstitusi, panitia.getIdUser(), judul, deskripsi,
-                                tanggalMulai, tanggalSelesai, lokasi, kuota, harga);
+        Seminar s = new Seminar(idInstitusi, panitia.getIdUser(), idKategori,
+            judul, deskripsi, pembicara, tanggalMulai, tanggalSelesai, mode, lokasi, kuota, harga);
         seminarDAO.insert(s);
-        auditLogDAO.log(panitia.getIdUser(), "TAMBAH_SEMINAR", "seminar");
+        auditLogDAO.log(panitia.getIdUser(), "TAMBAH_SEMINAR", "seminar",
+            s.getIdSeminar(), "Buat seminar: " + judul);
         return s;
     }
 
-    /**
-     * Edit seminar — hanya panitia pemilik atau Admin.
-     * Seminar berstatus SELESAI tidak dapat diedit.
-     */
     public boolean edit(User panitia, Seminar seminar)
             throws AksesDitolakException, InputKosongException, KuotaTidakValidException,
                    HargaTidakValidException, TanggalTidakValidException, SQLException {
-
         cekKepemilikan(panitia, seminar);
         if (seminar.getStatus() == StatusSeminar.SELESAI)
             throw new AksesDitolakException("Seminar yang sudah SELESAI tidak dapat diedit.");
-
         Validator.cekTidakKosong(seminar.getJudul(), "Judul Seminar");
         Validator.cekKuota(seminar.getKuota());
         Validator.cekHarga(seminar.getHarga());
         Validator.cekTanggal(seminar.getTanggalMulai(), seminar.getTanggalSelesai());
-
         boolean ok = seminarDAO.update(seminar);
-        if (ok) auditLogDAO.log(panitia.getIdUser(), "EDIT_SEMINAR", "seminar");
+        if (ok) auditLogDAO.log(panitia.getIdUser(), "EDIT_SEMINAR", "seminar",
+            seminar.getIdSeminar(), "Edit seminar: " + seminar.getJudul());
         return ok;
     }
 
     /**
-     * Hapus seminar (hard delete, sesuai DB v4 tidak ada soft delete).
-     * Hanya panitia pemilik atau Admin.
+     * Hapus seminar.
+     * BR-07 & 9.1: Jika ada peserta aktif → soft delete (status CANCELLED).
+     *              Jika belum ada peserta → hard delete.
      */
     public boolean hapus(User panitia, int idSeminar)
             throws AksesDitolakException, DataTidakDitemukanException, SQLException {
         Seminar s = getById(idSeminar);
         cekKepemilikan(panitia, s);
-        boolean ok = seminarDAO.hapus(idSeminar);
-        if (ok) auditLogDAO.log(panitia.getIdUser(), "HAPUS_SEMINAR", "seminar");
+        boolean ok;
+        String jenisHapus;
+        if (seminarDAO.punyaPeserta(idSeminar)) {
+            ok = seminarDAO.softDelete(idSeminar);
+            jenisHapus = "CANCELLED (soft delete — ada peserta)";
+        } else {
+            ok = seminarDAO.hardDelete(idSeminar);
+            jenisHapus = "dihapus permanen (tidak ada peserta)";
+        }
+        if (ok) auditLogDAO.log(panitia.getIdUser(), "HAPUS_SEMINAR", "seminar",
+            idSeminar, "Seminar '" + s.getJudul() + "' " + jenisHapus);
         return ok;
     }
 
-    /**
-     * Tandai seminar sebagai SELESAI.
-     * Setelah SELESAI, laporan F2 dan sertifikat dapat diakses.
-     */
     public boolean selesaikan(User panitia, int idSeminar)
             throws AksesDitolakException, DataTidakDitemukanException, SQLException {
         Seminar s = getById(idSeminar);
@@ -106,13 +101,18 @@ public class SeminarService {
         if (s.getStatus() == StatusSeminar.SELESAI)
             throw new AksesDitolakException("Seminar sudah berstatus SELESAI.");
         boolean ok = seminarDAO.selesaikan(idSeminar);
-        if (ok) auditLogDAO.log(panitia.getIdUser(), "SELESAIKAN_SEMINAR", "seminar");
+        if (ok) auditLogDAO.log(panitia.getIdUser(), "SELESAIKAN_SEMINAR", "seminar",
+            idSeminar, "Seminar '" + s.getJudul() + "' ditandai SELESAI");
         return ok;
     }
 
-    private void cekKepemilikan(User panitia, Seminar seminar) throws AksesDitolakException {
+    private void cekKepemilikan(User panitia, Seminar s) throws AksesDitolakException {
         if (panitia.getRole() == Role.ADMIN) return;
-        if (seminar.getIdPanitia() != panitia.getIdUser())
-            throw new AksesDitolakException("Anda tidak berhak mengelola seminar milik panitia lain.");
+        // BR-05: Panitia hanya bisa kelola seminar institusinya atau yang dibuatnya
+        if (s.getIdPanitia() != panitia.getIdUser()
+                && (panitia.getIdInstitusi() == null
+                    || s.getIdInstitusi() != panitia.getIdInstitusi()))
+            throw new AksesDitolakException(
+                "Anda tidak berhak mengelola seminar milik panitia/institusi lain.");
     }
 }

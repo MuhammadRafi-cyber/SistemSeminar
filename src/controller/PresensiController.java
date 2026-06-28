@@ -15,46 +15,45 @@ public class PresensiController {
 
     public String scanPresensi(User panitia, String kodeBooking) {
         try {
-            StatusHadir hasil = presensiService.scanPresensi(panitia, kodeBooking);
-            return "SUKSES|Presensi berhasil dicatat. Tiket '" + kodeBooking.trim().toUpperCase()
-                 + "' → Status: " + hasil;
+            StatusHadir h = presensiService.scanPresensi(panitia, kodeBooking);
+            return "SUKSES|Presensi berhasil dicatat."
+                 + " Tiket '" + kodeBooking.trim().toUpperCase() + "' → " + h;
         } catch (AksesDitolakException e) {
             return "ERROR|Akses ditolak: " + e.getMessage();
         } catch (InputKosongException e) {
-            return "ERROR|Input tidak valid: " + e.getMessage();
-        } catch (DataTidakDitemukanException e) {
-            return "ERROR|Tiket tidak ditemukan: " + e.getMessage();
+            return "ERROR|" + e.getMessage();
+        } catch (KodeBookingTidakValidException e) {
+            return "ERROR|" + e.getMessage();
         } catch (PresensiDuplikatException e) {
-            return "ERROR|Presensi duplikat: " + e.getMessage();
+            return "ERROR|" + e.getMessage();
+        } catch (DataTidakDitemukanException e) {
+            return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal mencatat presensi. Cek koneksi database. Detail: " + e.getMessage();
+            return "ERROR|Gagal mencatat presensi: " + e.getMessage();
         } catch (Exception e) {
-            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
+            return "ERROR|Kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
     public String cekStatus(String kodeBooking) {
         try {
-            StatusHadir status = presensiService.cekStatus(kodeBooking);
-            if (status == null)
-                return "INFO|Tiket '" + kodeBooking.trim().toUpperCase() + "' belum melakukan presensi.";
-            return "INFO|Status presensi tiket '" + kodeBooking.trim().toUpperCase() + "': " + status;
+            StatusHadir s = presensiService.cekStatus(kodeBooking);
+            String kode = kodeBooking.trim().toUpperCase();
+            if (s == null) return "INFO|Tiket '" + kode + "' belum melakukan presensi.";
+            return "INFO|Status presensi tiket '" + kode + "': " + s;
         } catch (InputKosongException e) {
-            return "ERROR|Input tidak valid: " + e.getMessage();
-        } catch (DataTidakDitemukanException e) {
+            return "ERROR|" + e.getMessage();
+        } catch (KodeBookingTidakValidException | DataTidakDitemukanException e) {
             return "ERROR|" + e.getMessage();
         } catch (SQLException e) {
-            return "ERROR|Gagal cek status presensi. Detail: " + e.getMessage();
+            return "ERROR|Gagal cek status: " + e.getMessage();
         } catch (Exception e) {
-            return "ERROR|Terjadi kesalahan tidak terduga: " + e.getMessage();
+            return "ERROR|Kesalahan tidak terduga: " + e.getMessage();
         }
     }
 
     public int hitungHadir(int idSeminar) {
         try { return presensiService.hitungHadir(idSeminar); }
-        catch (SQLException e) {
-            System.err.println("[ERROR] Gagal hitung hadir: " + e.getMessage());
-            return 0;
-        }
+        catch (SQLException e) { System.err.println("[ERROR] " + e.getMessage()); return 0; }
     }
 }

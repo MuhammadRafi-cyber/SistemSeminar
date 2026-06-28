@@ -6,10 +6,6 @@ import java.util.UUID;
 
 /**
  * KodeGenerator — menghasilkan kode unik untuk transaksi, booking, dan sertifikat.
- * Sesuai kolom DB v4:
- *   - pendaftaran.kode_transaksi
- *   - detail_pendaftaran.kode_booking
- *   - sertifikat.nomor
  */
 public class KodeGenerator {
 
