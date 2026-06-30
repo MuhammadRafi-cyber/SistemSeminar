@@ -71,7 +71,7 @@ INSERT INTO pembayaran (id_pendaftaran, metode, status, nominal, waktu_bayar, st
 (3, 'E-Wallet',      'BERHASIL',  75000, '2026-07-02 11:30:00', 'TIDAK_ADA');
 
 -- 8. Presensi (dicatat_oleh = id Panitia yang scan)
-INSERT INTO presensi (id_detail, status, waktu, dicatat_oleh) VALUES
+INSERT INTO presensi (id_detail, status, waktu_presensi, dicatat_oleh) VALUES
 (1, 'HADIR',       '2026-07-10 08:50:00', 1),
 (2, 'HADIR',       '2026-07-10 08:52:00', 1),
 (3, 'TIDAK_HADIR', NULL,                  NULL),

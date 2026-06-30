@@ -133,8 +133,8 @@ CREATE TABLE presensi (
     id_presensi  INT AUTO_INCREMENT PRIMARY KEY,
     id_detail    INT NOT NULL UNIQUE,
     status       ENUM('HADIR','TIDAK_HADIR') NOT NULL DEFAULT 'TIDAK_HADIR',
-    waktu        TIMESTAMP NULL,
-    dicatat_oleh INT NULL,                            -- [TAMBAHAN v5] FK user (Panitia)
+    waktu_presensi TIMESTAMP NULL,
+    dicatat_oleh INT NULL,
     FOREIGN KEY (id_detail)    REFERENCES detail_pendaftaran(id_detail) ON DELETE CASCADE,
     FOREIGN KEY (dicatat_oleh) REFERENCES user(id_user)                 ON DELETE SET NULL
 );

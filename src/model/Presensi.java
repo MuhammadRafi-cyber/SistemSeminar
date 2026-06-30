@@ -2,24 +2,20 @@ package model;
 
 import enums.StatusHadir;
 
-/**
- * Presensi — FK ke id_detail, sesuai DB v5.
- * Kolom baru v5: dicatat_oleh (FK user → Panitia yang scan, nullable).
- */
 public class Presensi {
     private int         idPresensi;
     private int         idDetail;
     private StatusHadir status;
-    private String      waktu;
-    private Integer     dicatatOleh;   // [TAMBAHAN v5] FK user.id_user (Panitia)
+    private String      waktuPresensi;   // diganti dari "waktu"
+    private Integer     dicatatOleh;
 
     public Presensi(int idPresensi, int idDetail, StatusHadir status,
-                    String waktu, Integer dicatatOleh) {
-        this.idPresensi  = idPresensi;
-        this.idDetail    = idDetail;
-        this.status      = status;
-        this.waktu       = waktu;
-        this.dicatatOleh = dicatatOleh;
+                    String waktuPresensi, Integer dicatatOleh) {
+        this.idPresensi    = idPresensi;
+        this.idDetail      = idDetail;
+        this.status        = status;
+        this.waktuPresensi = waktuPresensi;
+        this.dicatatOleh   = dicatatOleh;
     }
     public Presensi(int idDetail, StatusHadir status, Integer dicatatOleh) {
         this.idDetail    = idDetail;
@@ -27,14 +23,14 @@ public class Presensi {
         this.dicatatOleh = dicatatOleh;
     }
 
-    public int         getIdPresensi()  { return idPresensi; }
-    public int         getIdDetail()    { return idDetail; }
-    public StatusHadir getStatus()      { return status; }
-    public String      getWaktu()       { return waktu; }
-    public Integer     getDicatatOleh() { return dicatatOleh; }
+    public int         getIdPresensi()    { return idPresensi; }
+    public int         getIdDetail()      { return idDetail; }
+    public StatusHadir getStatus()        { return status; }
+    public String      getWaktuPresensi() { return waktuPresensi; }   // diganti dari getWaktu()
+    public Integer     getDicatatOleh()   { return dicatatOleh; }
 
-    public void setIdPresensi(int id)      { this.idPresensi = id; }
-    public void setStatus(StatusHadir s)   { this.status = s; }
-    public void setWaktu(String w)         { this.waktu = w; }
-    public void setDicatatOleh(Integer id) { this.dicatatOleh = id; }
+    public void setIdPresensi(int id)         { this.idPresensi = id; }
+    public void setStatus(StatusHadir s)      { this.status = s; }
+    public void setWaktuPresensi(String w)    { this.waktuPresensi = w; }  // diganti dari setWaktu()
+    public void setDicatatOleh(Integer id)    { this.dicatatOleh = id; }
 }

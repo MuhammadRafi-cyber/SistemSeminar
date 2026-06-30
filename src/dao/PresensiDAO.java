@@ -12,9 +12,9 @@ public class PresensiDAO {
      */
     public boolean simpanAtauUpdate(int idDetail, StatusHadir status, Integer dicatatOleh)
             throws SQLException {
-        String sql = "INSERT INTO presensi (id_detail, status, waktu, dicatat_oleh) "
-                   + "VALUES (?, ?, NOW(), ?) "
-                   + "ON DUPLICATE KEY UPDATE status = ?, waktu = NOW(), dicatat_oleh = ?";
+        String sql = "INSERT INTO presensi (id_detail, status, waktu_presensi, dicatat_oleh) "
+                + "VALUES (?, ?, NOW(), ?) "
+                + "ON DUPLICATE KEY UPDATE status = ?, waktu_presensi = NOW(), dicatat_oleh = ?";
         try (Connection c = Koneksi.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, idDetail);
