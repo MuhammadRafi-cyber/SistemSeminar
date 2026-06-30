@@ -302,8 +302,10 @@ public class Main {
 
     static void doTambahSeminar(User panitia) {
         System.out.println("--- Tambah Seminar ---");
-        lihatInstitusi();
-        System.out.print("ID Institusi          : "); int idInstitusi = parseIntSafe(sc.nextLine());
+        if (panitia.getIdInstitusi() == null) {
+            System.out.println("[✗] Akun Anda belum terhubung dengan institusi. Hubungi Admin terlebih dahulu.");
+            return;
+        }
         lihatKategori();
         System.out.print("ID Kategori (Enter=skip): "); String katStr = sc.nextLine().trim();
         Integer idKategori = katStr.isEmpty() ? null : parseIntSafe(katStr);
@@ -320,8 +322,8 @@ public class Main {
             LocalDateTime mulai  = LocalDateTime.parse(mulaiStr.trim(), FMT);
             LocalDateTime seles  = LocalDateTime.parse(selesStr.trim(), FMT);
             ModeSeminar   mode   = modeStr.equals("ONLINE") ? ModeSeminar.ONLINE : ModeSeminar.OFFLINE;
-            printHasil(seminarController.tambahSeminar(panitia, idInstitusi, idKategori,
-                judul, desk, pembicara, mulai, seles, mode, lokasi, kuota, harga));
+            printHasil(seminarController.tambahSeminar(panitia, idKategori,
+                    judul, desk, pembicara, mulai, seles, mode, lokasi, kuota, harga));
         } catch (DateTimeParseException e) {
             System.out.println("[ERROR] Format tanggal salah. Gunakan: yyyy-MM-dd HH:mm (contoh: 2026-07-10 09:00)");
         }

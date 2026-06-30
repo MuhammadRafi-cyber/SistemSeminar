@@ -25,13 +25,13 @@ public class SeminarController {
         catch (SQLException e) { err(e); return null; }
     }
 
-    public String tambahSeminar(User panitia, int idInstitusi, Integer idKategori,
-                                 String judul, String deskripsi, String pembicara,
-                                 LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai,
-                                 ModeSeminar mode, String lokasi, int kuota, double harga) {
+    public String tambahSeminar(User panitia, Integer idKategori,
+                                String judul, String deskripsi, String pembicara,
+                                LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai,
+                                ModeSeminar mode, String lokasi, int kuota, double harga) {
         try {
-            Seminar s = seminarService.tambah(panitia, idInstitusi, idKategori,
-                judul, deskripsi, pembicara, tanggalMulai, tanggalSelesai, mode, lokasi, kuota, harga);
+            Seminar s = seminarService.tambah(panitia, idKategori,
+                    judul, deskripsi, pembicara, tanggalMulai, tanggalSelesai, mode, lokasi, kuota, harga);
             return "SUKSES|Seminar '" + s.getJudul() + "' berhasil dibuat. ID: " + s.getIdSeminar();
         } catch (InputKosongException e)      { return "ERROR|Data tidak lengkap: " + e.getMessage();
         } catch (KuotaTidakValidException e)  { return "ERROR|Kuota tidak valid: " + e.getMessage();

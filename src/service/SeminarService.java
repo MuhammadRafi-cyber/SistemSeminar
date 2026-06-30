@@ -32,26 +32,32 @@ public class SeminarService {
         return seminarDAO.getById(id);
     }
 
-    public Seminar tambah(User panitia, int idInstitusi, Integer idKategori,
-                           String judul, String deskripsi, String pembicara,
-                           LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai,
-                           ModeSeminar mode, String lokasi, int kuota, double harga)
+    public Seminar tambah(User panitia, Integer idKategori,
+                          String judul, String deskripsi, String pembicara,
+                          LocalDateTime tanggalMulai, LocalDateTime tanggalSelesai,
+                          ModeSeminar mode, String lokasi, int kuota, double harga)
             throws InputKosongException, KuotaTidakValidException, HargaTidakValidException,
-                   TanggalTidakValidException, AksesDitolakException, SQLException {
+            TanggalTidakValidException, AksesDitolakException, SQLException {
 
         if (panitia.getRole() == Role.PESERTA)
             throw new AksesDitolakException("Hanya Panitia/Admin yang dapat membuat seminar.");
+
+        if (panitia.getIdInstitusi() == null)
+            throw new AksesDitolakException(
+                    "Akun Anda belum terhubung dengan institusi manapun. "
+                            + "Hubungi Admin untuk mengatur institusi Anda terlebih dahulu.");
+
         Validator.cekTidakKosong(judul, "Judul Seminar");
         Validator.cekTidakKosong(lokasi, "Lokasi");
         Validator.cekKuota(kuota);
         Validator.cekHarga(harga);
         Validator.cekTanggal(tanggalMulai, tanggalSelesai);
 
-        Seminar s = new Seminar(idInstitusi, panitia.getIdUser(), idKategori,
-            judul, deskripsi, pembicara, tanggalMulai, tanggalSelesai, mode, lokasi, kuota, harga);
+        Seminar s = new Seminar(panitia.getIdInstitusi(), panitia.getIdUser(), idKategori,
+                judul, deskripsi, pembicara, tanggalMulai, tanggalSelesai, mode, lokasi, kuota, harga);
         seminarDAO.insert(s);
         auditLogDAO.log(panitia.getIdUser(), "TAMBAH_SEMINAR", "seminar",
-            s.getIdSeminar(), "Buat seminar: " + judul);
+                s.getIdSeminar(), "Buat seminar: " + judul);
         return s;
     }
 
